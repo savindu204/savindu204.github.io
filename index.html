@@ -172,7 +172,9 @@ input,textarea{font-family:inherit}
 #hero{
   min-height:100vh;display:grid;
   grid-template-columns:45% 55%;
-  position:relative;overflow:hidden;padding-top:64px;
+  position:relative;
+  overflow:hidden;
+  padding-top:64px;
 }
 
 /* Decorative triangle SVG top-right */
@@ -183,19 +185,53 @@ input,textarea{font-family:inherit}
 
 /* Photo column */
 .hero-photo{
-  position:relative;overflow:hidden;
+  position:relative;
+  overflow:hidden;
+  z-index: 1;
 }
-.hero-photo-blob{
-  position:absolute;top:-60px;right:-40px;
-  width:420px;height:420px;
-  background:var(--orange);border-radius:50%;
-  z-index:0;opacity:.85;
-  animation:blobDrift 12s ease-in-out infinite alternate;
-  will-change:transform;
+/* ═══════════════════════════════════════════
+   HERO BLOB
+   — This is the orange circle behind the photo/video.
+   — position:absolute so it sits inside #hero (which has position:relative).
+   — z-index:0 keeps it BEHIND the video (z-index:1) and content (z-index:2).
+   — The blobDrift animation makes it slowly drift — same behaviour as original.
+   — The parallax JS below will also nudge it slightly on scroll.
+═══════════════════════════════════════════ */
+.hero-photo-blob {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+
+  /* CIRCLE shape — gradient fills the inside of the circle */
+  border-radius: 50%;
+
+  /* Linear gradient INSIDE the circle:
+     right side = solid orange, left side = fully transparent
+     Adjust the angle (to left) or stops to taste             */
+  background: linear-gradient(to left, #f05a1aa8 20%, rgba(240,90,26,0) 100%);
+
+  /* Centred within the left 45% photo column */
+  top: 10px;
+  left: 20.5%;
+  right: -80px;
+  transform: none;
+
+  z-index: 0;          /* behind video (z-index:1) and content (z-index:2) */
+
+  /* Slow drift animation */
+  animation: blobDrift 12s ease-in-out infinite alternate;
+  will-change: transform;
 }
-@keyframes blobDrift{
-  from{transform:translate(0,0) scale(1)}
-  to{transform:translate(20px,30px) scale(1.04)}
+
+/* Responsive — shrink on small screens */
+@media(max-width:480px){
+  .hero-photo-blob { width:250px; height:250px; }
+}
+
+/* Slow drift keyframes — circular floating motion */
+@keyframes blobDrift {
+  from { transform: translate(0, 0) scale(1);      }
+  to   { transform: translate(-12px, 12px) scale(1.04); }
 }
 /* ── REPLACE THIS WITH YOUR PHOTO ──
    Option A (CSS): .hero-photo-img { background-image: url('your-photo.jpg'); }
@@ -204,7 +240,7 @@ input,textarea{font-family:inherit}
 .hero-photo-img { 
   background-image: url('p.jpg');
 }
-.hero-photo-img{
+/* .hero-photo-img{
   position:relative;z-index:1;
   width:100%;height:100%;min-height:calc(100vh - 64px);
   background:linear-gradient(135deg,#E8E8E8 0%,#CCCCCC 100%);
@@ -212,7 +248,31 @@ input,textarea{font-family:inherit}
   display:flex;align-items:center;justify-content:center;
   -webkit-mask-image:linear-gradient(to right,black 60%,transparent 100%);
   mask-image:linear-gradient(to right,black 60%,transparent 100%);
+} */
+
+/* ── HERO PHOTO / VIDEO ELEMENT ──────────────────────────────
+   Styles whichever media fills the left column.
+   Works for BOTH <video> (current) AND <img> / background-image
+   <div> if you ever switch back.
+
+   mask-image creates the gradient fade left→right so the media
+   blends smoothly into the content side — same as original photo.
+──────────────────────────────────────────────────────────── */
+.hero-photo {
+  position: relative;
+  z-index: 1;                   /* above blob (z-index:0), below content (z-index:2) */
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 64px);
+  object-fit: cover;
+  object-position: center top;  /* change to "top left" if face is cut off */
+  display: block;
+
+  /* Gradient fade: solid on left, transparent on right — restores original blend */
+  -webkit-mask-image: linear-gradient(to right, black 60%, transparent 100%);
+          mask-image: linear-gradient(to right, black 65%, transparent 100%);
 }
+
 .hero-photo-placeholder{
   font-family:var(--font-m);font-size:.8rem;
   color:rgba(0,0,0,0.3);letter-spacing:.1em;
@@ -850,43 +910,73 @@ footer{
 <main>
 <!-- ═════════════════════════════════════════
      HERO
+     #hero uses CSS grid: 45% left column (media) | 55% right column (content).
+     position:relative is set in CSS so the blob and triangle can be
+     positioned absolutely inside it.
 ═════════════════════════════════════════ -->
 <section id="hero" aria-label="Hero section">
 
-  <!-- Decorative triangle -->
+  <!-- ── Decorative triangle (top-right corner, very faint) ── -->
   <svg class="hero-triangle" width="160" height="140" viewBox="0 0 160 140" fill="none" aria-hidden="true">
     <polygon points="80,10 155,130 5,130" stroke="#0D0D0D" stroke-width="1.5" fill="none"/>
     <polygon points="80,35 135,120 25,120" stroke="#0D0D0D" stroke-width=".8" fill="none" opacity=".5"/>
   </svg>
 
-  <!-- Photo Column -->
-  <div class="hero-photo">
-    <div class="hero-photo-blob" aria-hidden="true"></div>
-    <!--
-      ══════════════════════════════════════════════════
-      PHOTO REPLACEMENT INSTRUCTIONS:
-      Option A — Background image (recommended):
-        1. Add your photo file to the same folder as this HTML
-        2. In the CSS, find ".hero-photo-img" and add:
-           background-image: url('your-photo.jpg');
-        3. Remove the .hero-photo-placeholder text below
+  <!-- ══════════════════════════════════════════════════════════
+       ORANGE BLOB
+       — position:absolute, z-index:0 (behind the video).
+       — Centred in the left 45% column via top/left in CSS.
+       — Animated with blobDrift keyframes + parallax on scroll.
+       — DO NOT move or remove this div; it must be a direct
+         child of #hero so its absolute position works correctly.
+  ══════════════════════════════════════════════════════════ -->
+  <div class="hero-photo-blob" aria-hidden="true"></div>
 
-      Option B — <img> tag:
-        Replace the entire <div class="hero-photo-img"> block with:
-        <img src="your-photo.jpg"
-             alt="Savindu John"
-             class="hero-photo-img"
-             style="object-fit:cover;object-position:top center;">
-      ══════════════════════════════════════════════════
-    -->
-    <!-- <div class="hero-photo-img" role="img" aria-label="Savindu John photo placeholder">
-      <span class="hero-photo-placeholder">[ Photo ]</span>
-    </div> -->
-    <img src="background_dp.png"
-        alt ="Savindu John"
-        class="hero-photo-img"
-        style="object-fit:cover;object-position:top center;">
+  <!-- ══════════════════════════════════════════════════════════
+       LEFT COLUMN — MEDIA (video or image)
+
+       CURRENTLY ACTIVE: VIDEO
+       The <video> tag uses class="hero-photo" which applies:
+         • object-fit:cover  — fills the column without stretching
+         • mask-image        — gradient fade from left → right
+         • z-index:1         — sits above blob, below content
+
+       TO SWITCH BACK TO A STATIC IMAGE, do ONE of the following:
+
+       OPTION A — <img> tag (simplest):
+         1. Comment out the <video> block below.
+         2. Uncomment the <img> block further below.
+         3. Set src="your-photo.jpg" on the <img>.
+
+       OPTION B — CSS background-image:
+         1. Comment out the <video> block below.
+         2. Uncomment the <div class="hero-photo-img"> block.
+         3. In CSS find ".hero-photo-img" and set:
+            background-image: url('your-photo.jpg');
+  ══════════════════════════════════════════════════════════ -->
+
+  <!-- ▼ ACTIVE — VIDEO ▼ -->
+  <video autoplay muted loop playsinline class="hero-photo"
+         aria-label="Savindu John background video">
+    <source src="background_video.mp4" type="video/mp4">
+    <!-- Fallback text for very old browsers -->
+    Your browser does not support HTML5 video.
+  </video>
+  <!-- ▲ ACTIVE — VIDEO ▲ -->
+
+  <!-- ▼ OPTION A — uncomment to use a static <img> instead ▼
+  <img src="your-photo.jpg"
+       alt="Savindu John"
+       class="hero-photo">
+  ▲ OPTION A ▲ -->
+
+  <!-- ▼ OPTION B — uncomment to use CSS background-image instead ▼
+  <div class="hero-photo hero-photo-img"
+       role="img"
+       aria-label="Savindu John photo">
   </div>
+  Then in CSS add:  .hero-photo-img { background-image: url('your-photo.jpg'); background-size:cover; background-position:top center; }
+  ▲ OPTION B ▲ -->
 
   <!-- Content Column -->
   <div class="hero-content">
@@ -1283,7 +1373,7 @@ footer{
     <div class="contact-info-block reveal-left">
       <div class="contact-item">
         <span class="ci-label">Email</span>
-        <span class="ci-val"><a href="mailto:savindueshan2004@gmail.com" target="_blank" rel="noopener">savindueshan2004@gmail.com</a></span>
+        <span class="ci-val"><a href="/cdn-cgi/l/email-protection#374456415e59534252445f56590507070377505a565e5b1954585a" target="_blank" rel="noopener"><span class="__cf_email__" data-cfemail="4c3f2d3a25222839293f242d227e7c7c780c2b212d2520622f2321">savindueshan2004@gmail.com</span></a></span>
       </div>
       <div class="contact-item">
         <span class="ci-label">Phone</span>
@@ -1339,7 +1429,7 @@ footer{
 <!-- ═════════════════════════════════════════
      JAVASCRIPT
 ═════════════════════════════════════════ -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ── Hero name letter split ── */
 (function(){
   const el = document.getElementById('hero-name-el');
@@ -1434,13 +1524,14 @@ function closeMobile(){
   els.forEach(el=>io.observe(el));
 })();
 
-/* ── Parallax blob ── */
+/* ── Parallax blob — nudges the circle as user scrolls ── */
 (function(){
   const blob = document.querySelector('.hero-photo-blob');
   if(!blob) return;
   window.addEventListener('scroll',()=>{
-    blob.style.transform = `translate(${window.scrollY*0.15}px,${window.scrollY*0.3}px) scale(1)`;
-  },{passive:true});
+    const y = window.scrollY;
+    /* Keeps the translate(-50%,-50%) centering + adds parallax offset */
+    blob.style.transform = `translate(${y*0.08}px, ${y*0.12}px)`;  },{passive:true});
 })();
 
 /* ── Skill tag ripple ── */
@@ -1482,12 +1573,6 @@ function handleSubmit(e){
     btn.style.background='';
     e.target.reset();
   },3000);
-}
-
-/* ── Touch: disable cursor on mobile ── */
-if('ontouchstart' in window){
-  document.getElementById('cursor-dot').style.display='none';
-  document.getElementById('cursor-ring').style.display='none';
 }
 </script>
 </body>
